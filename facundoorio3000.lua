@@ -1,8 +1,11 @@
-
+-- Hub: facundoorio3000 (by Facu 😎)
+-- Versión móvil + animación TEAMFACU
 
 repeat task.wait() until game:IsLoaded()
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 repeat task.wait() until player:FindFirstChild("PlayerGui")
 
@@ -29,21 +32,19 @@ teamText.TextColor3 = Color3.fromRGB(255, 0, 120)
 teamText.TextStrokeTransparency = 0.2
 teamText.AnchorPoint = Vector2.new(0.5, 0.5)
 
--- Animación de entrada tipo “BOOM” desde el costado
+-- Animación de entrada tipo “BOOM”
 local tweenIn = TweenService:Create(teamText, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
     {Position = UDim2.new(0.5, 0, 0.4, 0)})
 tweenIn:Play()
 tweenIn.Completed:Wait()
 
--- Pequeño efecto de boom (escala rápida)
 local tweenBoom = TweenService:Create(teamText, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
     {Size = UDim2.new(0.9, 0, 0.35, 0)})
 tweenBoom:Play()
 tweenBoom.Completed:Wait()
 
-task.wait(2.5)
+task.wait(2.3)
 
--- Desaparece suavemente
 local tweenOut = TweenService:Create(teamText, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
     {TextTransparency = 1})
 tweenOut:Play()
@@ -135,7 +136,94 @@ mainFrame.BackgroundTransparency = 0.1
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 
+-- 💫 Hacer el panel movible (funciona en móvil y PC)
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    mainFrame.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+--==================== BOTONES ====================
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 28)
 title.BackgroundTransparency = 1
-title.Text = "⚡ FACUNDOORIO3000
+title.Text = "⚡ FACUNDOORIO3000 ⚡"
+title.Font = Enum.Font.GothamBold
+title.TextColor3 = Color3.fromRGB(255, 0, 200)
+title.TextScaled = true
+title.Parent = mainFrame
+
+local function makeButton(y, text, color)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -20, 0, 30)
+    b.Position = UDim2.new(0, 10, 0, y)
+    b.Text = text
+    b.Font = Enum.Font.Gotham
+    b.TextScaled = true
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.BackgroundColor3 = color
+    b.BorderSizePixel = 0
+    b.Parent = mainFrame
+    return b
+end
+
+local btnTp1 = makeButton(35, "Tp1 — Guardar posición", Color3.fromRGB(255, 0, 90))
+local btnTp2 = makeButton(70, "Tp2 — Ir a guardada", Color3.fromRGB(0, 90, 255))
+local btnTras = makeButton(105, "Tras — Noclip", Color3.fromRGB(150, 0, 255))
+
+btnTp1.MouseButton1Click:Connect(function()
+    savePosition()
+    btnTp1.Text = "✔ Guardada"
+    task.wait(1.2)
+    btnTp1.Text = "Tp1 — Guardar posición"
+end)
+
+btnTp2.MouseButton1Click:Connect(function()
+    teleportToSaved()
+    btnTp2.Text = "✔ Teleportado"
+    task.wait(1.2)
+    btnTp2.Text = "Tp2 — Ir a guardada"
+end)
+
+btnTras.MouseButton1Click:Connect(function()
+    toggleNoclip()
+    if noclipEnabled then
+        btnTras.Text = "Tras — ON"
+    else
+        btnTras.Text = "Tras — OFF"
+    end
+    task.wait(1.2)
+    btnTras.Text = "Tras — Noclip"
+end)
