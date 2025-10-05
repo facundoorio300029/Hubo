@@ -1,229 +1,233 @@
--- Hub: facundoorio3000 (by Facu 😎)
--- Versión móvil + animación TEAMFACU
+-- Hub: TEAMFACU Neon Gamer 😎
+-- Autor: Facu
+-- Totalmente compatible con Delta (celular)
+-- Movible, colores neon y animación boom de entrada
 
-repeat task.wait() until game:IsLoaded()
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
-local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
-repeat task.wait() until player:FindFirstChild("PlayerGui")
-
-local savedCFrame = nil
-local noclipEnabled = false
+local player = Players.LocalPlayer
 local savedCanCollide = {}
+local noclipEnabled = false
+local flyEnabled = false
+local flySpeed = 60
 
---==================== ANIMACIÓN TEAMFACU (BOOM desde la derecha) ====================
+--==================== ANIMACIÓN TEAMFACU ====================
 local screenGuiIntro = Instance.new("ScreenGui")
 screenGuiIntro.IgnoreGuiInset = true
 screenGuiIntro.ResetOnSpawn = false
 screenGuiIntro.Name = "TEAMFACU_Intro"
-screenGuiIntro.Parent = player.PlayerGui
+screenGuiIntro.Parent = player:WaitForChild("PlayerGui")
 
 local teamText = Instance.new("TextLabel")
 teamText.Parent = screenGuiIntro
-teamText.Size = UDim2.new(0.8, 0, 0.3, 0)
-teamText.Position = UDim2.new(1.2, 0, 0.4, 0)
+teamText.Size = UDim2.new(1, 0, 1, 0)
 teamText.BackgroundTransparency = 1
 teamText.Text = "💥 TEAMFACU 💥"
 teamText.Font = Enum.Font.GothamBlack
 teamText.TextScaled = true
-teamText.TextColor3 = Color3.fromRGB(255, 0, 120)
+teamText.TextColor3 = Color3.fromRGB(90, 0, 255)
 teamText.TextStrokeTransparency = 0.2
+
+teamText.TextTransparency = 1
+teamText.Position = UDim2.new(0.5, 0, 0.5, 0)
 teamText.AnchorPoint = Vector2.new(0.5, 0.5)
+teamText.Size = UDim2.new(0, 0, 0, 0)
 
--- Animación de entrada tipo “BOOM”
-local tweenIn = TweenService:Create(teamText, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-    {Position = UDim2.new(0.5, 0, 0.4, 0)})
-tweenIn:Play()
-tweenIn.Completed:Wait()
+task.wait(0.3)
+local boom = TweenService:Create(teamText, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+	TextTransparency = 0,
+	Size = UDim2.new(1, 0, 1, 0)
+})
+boom:Play()
+boom.Completed:Wait()
 
-local tweenBoom = TweenService:Create(teamText, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-    {Size = UDim2.new(0.9, 0, 0.35, 0)})
-tweenBoom:Play()
-tweenBoom.Completed:Wait()
-
-task.wait(2.3)
-
-local tweenOut = TweenService:Create(teamText, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-    {TextTransparency = 1})
-tweenOut:Play()
-tweenOut.Completed:Wait()
+task.wait(1.5)
+local fade = TweenService:Create(teamText, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+	TextTransparency = 1
+})
+fade:Play()
+fade.Completed:Wait()
 screenGuiIntro:Destroy()
 
---==================== FUNCIONES PRINCIPALES ====================
+--==================== FUNCIONES ====================
 local function getCharacterAndRoot()
-    local char = player.Character or player.CharacterAdded:Wait()
-    local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-    return char, hrp
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	return char, hrp
 end
 
+-- Noclip
 local function enableNoclip()
-    if noclipEnabled then return end
-    local char = player.Character
-    if not char then return end
-    savedCanCollide = {}
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            savedCanCollide[part] = part.CanCollide
-            part.CanCollide = false
-        end
-    end
-    noclipEnabled = true
+	local char = player.Character
+	if not char then return end
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") then
+			savedCanCollide[part] = part.CanCollide
+			part.CanCollide = false
+		end
+	end
+	noclipEnabled = true
 end
 
 local function disableNoclip()
-    if not noclipEnabled then return end
-    local char = player.Character
-    if not char then return end
-    for part, original in pairs(savedCanCollide) do
-        if part and part.Parent then
-            part.CanCollide = original
-        end
-    end
-    savedCanCollide = {}
-    noclipEnabled = false
+	local char = player.Character
+	if not char then return end
+	for part, original in pairs(savedCanCollide) do
+		if part and part.Parent then
+			part.CanCollide = original
+		end
+	end
+	noclipEnabled = false
 end
 
 local function toggleNoclip()
-    if noclipEnabled then
-        disableNoclip()
-    else
-        enableNoclip()
-    end
+	if noclipEnabled then
+		disableNoclip()
+	else
+		enableNoclip()
+	end
 end
 
-player.CharacterAdded:Connect(function()
-    task.wait(0.1)
-    if noclipEnabled then
-        enableNoclip()
-    else
-        disableNoclip()
-    end
-end)
+-- Fly
+local function toggleFly()
+	flyEnabled = not flyEnabled
+	local _, hrp = getCharacterAndRoot()
+	if not hrp then return end
+	if flyEnabled then
+		local bodyGyro = Instance.new("BodyGyro")
+		local bodyVel = Instance.new("BodyVelocity")
+		bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+		bodyGyro.P = 10000
+		bodyGyro.Parent = hrp
+		bodyVel.Parent = hrp
+		bodyVel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 
-local function savePosition()
-    local _, hrp = getCharacterAndRoot()
-    if hrp then
-        savedCFrame = hrp.CFrame
-        print("[facundoorio3000] Posición guardada:", savedCFrame)
-    end
+		RunService.RenderStepped:Connect(function()
+			if not flyEnabled then
+				bodyGyro:Destroy()
+				bodyVel:Destroy()
+				return
+			end
+			bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+			local moveDir = Vector3.zero
+			if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir += workspace.CurrentCamera.CFrame.LookVector end
+			if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir -= workspace.CurrentCamera.CFrame.LookVector end
+			if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir -= workspace.CurrentCamera.CFrame.RightVector end
+			if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir += workspace.CurrentCamera.CFrame.RightVector end
+			bodyVel.Velocity = moveDir * flySpeed
+		end)
+	end
 end
 
-local function teleportToSaved()
-    local _, hrp = getCharacterAndRoot()
-    if not hrp then return end
-    if not savedCFrame then
-        warn("[facundoorio3000] No hay posición guardada. Usa Tp1 para guardar.")
-        return
-    end
-    hrp.CFrame = savedCFrame + Vector3.new(0, 3, 0)
-    print("[facundoorio3000] Teletransportado a la posición guardada.")
-end
+--==================== GUI ====================
+local gui = Instance.new("ScreenGui")
+gui.Name = "TEAMFACU_GUI"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
 
---==================== GUI PRINCIPAL ====================
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "facundoorio3000_GUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player.PlayerGui
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 240)
+frame.Position = UDim2.new(1, -210, 0.5, -120)
+frame.BackgroundColor3 = Color3.fromRGB(80, 0, 200)
+frame.BorderSizePixel = 0
+frame.Parent = gui
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "Main"
-mainFrame.Size = UDim2.new(0, 200, 0, 130)
-mainFrame.Position = UDim2.new(1, -210, 0.4, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 0, 60)
-mainFrame.BackgroundTransparency = 0.1
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 16)
+corner.Parent = frame
 
--- 💫 Hacer el panel movible (funciona en móvil y PC)
-local dragging, dragInput, dragStart, startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    mainFrame.Position = UDim2.new(
-        startPos.X.Scale,
-        startPos.X.Offset + delta.X,
-        startPos.Y.Scale,
-        startPos.Y.Offset + delta.Y
-    )
-end
-
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
+-- Drag (para celular)
+local dragging, dragStart, startPos
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+UIS.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.Touch then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
 end)
 
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
-end)
-
---==================== BOTONES ====================
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 28)
+title.Size = UDim2.new(1, 0, 0, 35)
 title.BackgroundTransparency = 1
-title.Text = "⚡ FACUNDOORIO3000 ⚡"
+title.Text = "⚡ TEAMFACU ⚡"
 title.Font = Enum.Font.GothamBold
-title.TextColor3 = Color3.fromRGB(255, 0, 200)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextScaled = true
-title.Parent = mainFrame
+title.Parent = frame
 
 local function makeButton(y, text, color)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(1, -20, 0, 30)
-    b.Position = UDim2.new(0, 10, 0, y)
-    b.Text = text
-    b.Font = Enum.Font.Gotham
-    b.TextScaled = true
-    b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    b.BackgroundColor3 = color
-    b.BorderSizePixel = 0
-    b.Parent = mainFrame
-    return b
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -20, 0, 35)
+	btn.Position = UDim2.new(0, 10, 0, y)
+	btn.BackgroundColor3 = color
+	btn.Text = text
+	btn.Font = Enum.Font.Gotham
+	btn.TextScaled = true
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Parent = frame
+	local c = Instance.new("UICorner", btn)
+	c.CornerRadius = UDim.new(0, 8)
+	return btn
 end
 
-local btnTp1 = makeButton(35, "Tp1 — Guardar posición", Color3.fromRGB(255, 0, 90))
-local btnTp2 = makeButton(70, "Tp2 — Ir a guardada", Color3.fromRGB(0, 90, 255))
-local btnTras = makeButton(105, "Tras — Noclip", Color3.fromRGB(150, 0, 255))
+local btnTras = makeButton(45, "Tras — Noclip", Color3.fromRGB(255, 0, 120))
+local speedLabel = makeButton(90, "Speed", Color3.fromRGB(0, 80, 255))
+local jumpLabel = makeButton(135, "Jump", Color3.fromRGB(120, 0, 255))
+local btnFly = makeButton(180, "Fly — OFF", Color3.fromRGB(255, 50, 200))
 
-btnTp1.MouseButton1Click:Connect(function()
-    savePosition()
-    btnTp1.Text = "✔ Guardada"
-    task.wait(1.2)
-    btnTp1.Text = "Tp1 — Guardar posición"
+-- Campos de texto
+local speedBox = Instance.new("TextBox", frame)
+speedBox.Size = UDim2.new(0, 80, 0, 25)
+speedBox.Position = UDim2.new(0, 110, 0, 95)
+speedBox.Text = "16"
+speedBox.PlaceholderText = "Velocidad"
+speedBox.TextScaled = true
+speedBox.BackgroundColor3 = Color3.fromRGB(0, 0, 80)
+speedBox.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", speedBox)
+
+local jumpBox = Instance.new("TextBox", frame)
+jumpBox.Size = UDim2.new(0, 80, 0, 25)
+jumpBox.Position = UDim2.new(0, 110, 0, 140)
+jumpBox.Text = "50"
+jumpBox.PlaceholderText = "Salto"
+jumpBox.TextScaled = true
+jumpBox.BackgroundColor3 = Color3.fromRGB(30, 0, 100)
+jumpBox.TextColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", jumpBox)
+
+--==================== FUNCIONES DE BOTONES ====================
+btnTras.MouseButton1Click:Connect(toggleNoclip)
+
+speedLabel.MouseButton1Click:Connect(function()
+	local char = player.Character
+	if char and char:FindFirstChildOfClass("Humanoid") then
+		char:FindFirstChildOfClass("Humanoid").WalkSpeed = tonumber(speedBox.Text) or 16
+	end
 end)
 
-btnTp2.MouseButton1Click:Connect(function()
-    teleportToSaved()
-    btnTp2.Text = "✔ Teleportado"
-    task.wait(1.2)
-    btnTp2.Text = "Tp2 — Ir a guardada"
+jumpLabel.MouseButton1Click:Connect(function()
+	local char = player.Character
+	if char and char:FindFirstChildOfClass("Humanoid") then
+		char:FindFirstChildOfClass("Humanoid").JumpPower = tonumber(jumpBox.Text) or 50
+	end
 end)
 
-btnTras.MouseButton1Click:Connect(function()
-    toggleNoclip()
-    if noclipEnabled then
-        btnTras.Text = "Tras — ON"
-    else
-        btnTras.Text = "Tras — OFF"
-    end
-    task.wait(1.2)
-    btnTras.Text = "Tras — Noclip"
+btnFly.MouseButton1Click:Connect(function()
+	toggleFly()
+	btnFly.Text = flyEnabled and "Fly — ON" or "Fly — OFF"
 end)
